@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weather Dynamics: Land & Ocean Temperature</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #eef6f9;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: background-color 0.8s ease;
+  }
+
+  body.night {
+    background-color: #1a252f;
+    color: #ecf0f1;
+  }
+
+  h1 {
+    margin-bottom: 5px;
+    text-align: center;
+  }
+
+  .description {
+    max-width: 800px;
+    text-align: center;
+    color: #555;
+    margin-bottom: 20px;
+  }
+
+  body.night .description {
+    color: #bdc3c7;
+  }
+
+  .sim-container {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .material-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    width: 380px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    transition: background-color 0.8s ease, color 0.8s ease;
+  }
+
+  body.night .material-card {
+    background: #2c3e50;
+    color: white;
+  }
+
+  .material-title {
+    font-size: 1.4rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+
+  /* Celestial / Heat Source */
+  .celestial-container {
+    position: relative;
+    width: 100px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .sun-btn {
+    font-size: 2.2rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+    user-select: none;
+    transition: transform 0.3s ease;
+    z-index: 2;
+  }
+
+  .sun-btn:hover {
+    transform: scale(1.2) rotate(15deg);
+  }
+
+  /* Star Field Container for Night Mode */
+  .star-field {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+
+  body.night .star-field {
+    opacity: 1;
+  }
+
+  .star {
+    position: absolute;
+    font-size: 0.75rem;
+    animation: twinkle 1.5s infinite alternate ease-in-out;
+  }
+
+  @keyframes twinkle {
+    0% { opacity: 0.3; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1.2); }
+  }
+
+  .sun-label {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #d35400;
+    margin-bottom: 10px;
+  }
+
+  body.night .sun-label {
+    color: #f39c12;
+  }
+
+  .setup {
+    display: flex;
+    align-items: flex-end;
+    gap: 15px;
+    height: 140px;
+    position: relative;
+    margin-bottom: 15px;
+    width: 300px;
+    justify-content: flex-start;
+  }
+
+  /* Wide Container */
+  .container-box {
+    width: 260px;
+    height: 90px;
+    border: 3px solid #444;
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .soil-bg {
+    background-color: #8D5524;
+  }
+
+  .water-bg {
+    background-color: #3498db;
+    opacity: 0.9;
+  }
+
+  /* Precise Wave Animations */
+  .sun-wave {
+    position: absolute;
+    width: 60px;
+    height: 12px;
+    border-radius: 50%;
+    border: 3px solid #f1c40f;
+    box-shadow: 0 0 10px #f39c12;
+    top: 68px; /* Starts directly at the Sun icon */
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 1;
+    pointer-events: none;
+    z-index: 5;
+    animation: waveDown 0.65s ease-in forwards;
+  }
+
+  @keyframes waveDown {
+    0% { transform: translateX(-50%) translateY(0) scaleX(0.3); opacity: 1; }
+    100% { transform: translateX(-50%) translateY(75px) scaleX(2.0); opacity: 0; }
+  }
+
+  .night-wave {
+    position: absolute;
+    width: 140px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2.5px dashed #e74c3c;
+    box-shadow: 0 0 8px #e74c3c;
+    top: 38px; /* Top-center surface of the tray */
+    left: 130px; /* Center of the tray */
+    transform: translateX(-50%);
+    opacity: 1;
+    pointer-events: none;
+    z-index: 5;
+    animation: waveUp 0.8s ease-out forwards;
+  }
+
+  @keyframes waveUp {
+    0% { transform: translateX(-50%) translateY(0) scaleX(0.8); opacity: 0.9; }
+    100% { transform: translateX(-50%) translateY(-70px) scaleX(1.3); opacity: 0; }
+  }
+
+  /* Energy Blocks */
+  .energy-block {
+    width: 16px;
+    height: 16px;
+    background-color: #e74c3c;
+    color: white;
+    font-weight: bold;
+    font-size: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 3px;
+    position: absolute;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    animation: pop 0.2s ease-out;
+    border: 1px solid #c0392b;
+  }
+
+  @keyframes pop {
+    0% { transform: scale(0); }
+    100% { transform: scale(1); }
+  }
+
+  /* Thermometer */
+  .thermometer-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 120px;
+  }
+
+  .thermometer-bar {
+    width: 14px;
+    height: 100px;
+    background-color: #e0e0e0;
+    border: 2px solid #555;
+    border-radius: 8px 8px 0 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .thermometer-fill {
+    width: 100%;
+    background-color: #e74c3c;
+    position: absolute;
+    bottom: 0;
+    transition: height 0.4s ease;
+  }
+
+  .thermometer-bulb {
+    width: 22px;
+    height: 22px;
+    background-color: #e74c3c;
+    border: 2px solid #555;
+    border-radius: 50%;
+    margin-top: -4px;
+  }
+
+  .temp-display {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 8px 0;
+  }
+
+  .stats {
+    width: 100%;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    border-top: 1px solid #ddd;
+    padding-top: 10px;
+  }
+
+  body.night .stats {
+    border-top-color: #4a6278;
+  }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  button.main-btn {
+    padding: 10px 18px;
+    font-size: 1rem;
+    font-weight: bold;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+
+  button.main-btn:active {
+    transform: scale(0.97);
+  }
+
+  .btn-sun { background-color: #e67e22; }
+  .btn-sun:hover { background-color: #d35400; }
+
+  .btn-night { background-color: #34495e; }
+  .btn-night:hover { background-color: #2c3e50; }
+
+  .btn-reset { background-color: #7f8c8d; }
+  .btn-reset:hover { background-color: #95a5a6; }
+
+  /* Graph Card */
+  .graph-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    width: 800px;
+    max-width: 90vw;
+    margin-bottom: 30px;
+    transition: background-color 0.8s ease, color 0.8s ease;
+  }
+
+  body.night .graph-card {
+    background: #2c3e50;
+    color: white;
+  }
+</style>
+</head>
+<body>
+
+<h1 id="title">☀️ Weather Dynamics: Land vs. Ocean Heating</h1>
+<p class="description">
+  Click the <strong>Sun</strong> above either container to add heat units during the day. 
+  Observe how quickly land warms up compared to water, then switch to <strong>Night Mode</strong> to observe cooling!
+</p>
+
+<div class="sim-container">
+  <!-- Soil Container -->
+  <div class="material-card" id="soil-card">
+    <div class="material-title" style="color: #d35400;">Land (Soil)</div>
+    
+    <div class="celestial-container">
+      <div class="star-field" id="soil-star-field"></div>
+      <button class="sun-btn" id="soil-sun" onclick="addHeat('soil')" title="Click to add heat unit to land">☀️</button>
+    </div>
+    
+    <div class="sun-label" id="soil-sun-label">Click Sun to Heat Land</div>
+    
+    <div class="setup" id="soil-setup">
+      <div class="container-box soil-bg" id="soil-box"></div>
+      <div class="thermometer-container">
+        <div class="thermometer-bar">
+          <div class="thermometer-fill" id="soil-thermo" style="height: 20%;"></div>
+        </div>
+        <div class="thermometer-bulb"></div>
+      </div>
+    </div>
+    
+    <div class="temp-display" id="soil-temp">20.0 °C</div>
+    <div class="stats">
+      Mass: <strong>100 g</strong><br>
+      Initial Heat Units: <span id="soil-initial-val">2.0</span><br>
+      <span id="soil-dynamic-label">Added Heat Units</span>: <span id="soil-added">0.0</span><br>
+      Total Heat Units: <span id="soil-total">2.0</span>
+    </div>
+  </div>
+
+  <!-- Water Container -->
+  <div class="material-card" id="water-card">
+    <div class="material-title" style="color: #2980b9;">Ocean (Water)</div>
+    
+    <div class="celestial-container">
+      <div class="star-field" id="water-star-field"></div>
+      <button class="sun-btn" id="water-sun" onclick="addHeat('water')" title="Click to add heat unit to water">☀️</button>
+    </div>
+    
+    <div class="sun-label" id="water-sun-label">Click Sun to Heat Ocean</div>
+    
+    <div class="setup" id="water-setup">
+      <div class="container-box water-bg" id="water-box"></div>
+      <div class="thermometer-container">
+        <div class="thermometer-bar">
+          <div class="thermometer-fill" id="water-thermo" style="height: 20%;"></div>
+        </div>
+        <div class="thermometer-bulb"></div>
+      </div>
+    </div>
+    
+    <div class="temp-display" id="water-temp">20.0 °C</div>
+    <div class="stats">
+      Mass: <strong>100 g</strong><br>
+      Initial Heat Units: <span id="water-initial-val">10.0</span><br>
+      <span id="water-dynamic-label">Added Heat Units</span>: <span id="water-added">0.0</span><br>
+      Total Heat Units: <span id="water-total">10.0</span>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="main-btn btn-sun" id="heat-both-btn" onclick="addHeatBoth()">☀️ Heat Both (+1 Unit)</button>
+  <button class="main-btn btn-night" id="night-btn" onclick="toggleNight()">🌙 Switch to Night (Cooling)</button>
+  <button class="main-btn btn-reset" onclick="resetSim()">🔄 Reset Experiment</button>
+</div>
+
+<!-- Animated Graph -->
+<div class="graph-card">
+  <canvas id="tempChart" height="110"></canvas>
+</div>
+
+<script>
+  let isNight = false;
+  let coolingInterval = null;
+  let timeStep = 0;
+
+  let soil = {
+    temp: 20.0,
+    peakTemp: 20.0,
+    initial: 2,
+    sunsetHeat: 2.0,
+    addedUnits: 0.0,
+    lostUnits: 0.0,
+    boxId: 'soil-box',
+    cardId: 'soil-card',
+    setupId: 'soil-setup',
+    thermoId: 'soil-thermo',
+    tempId: 'soil-temp',
+    initialValId: 'soil-initial-val',
+    addedId: 'soil-added',
+    totalId: 'soil-total',
+    labelId: 'soil-dynamic-label',
+    rate: 2.1
+  };
+
+  let water = {
+    temp: 20.0,
+    peakTemp: 20.0,
+    initial: 10,
+    sunsetHeat: 10.0,
+    addedUnits: 0.0,
+    lostUnits: 0.0,
+    boxId: 'water-box',
+    cardId: 'water-card',
+    setupId: 'water-setup',
+    thermoId: 'water-thermo',
+    tempId: 'water-temp',
+    initialValId: 'water-initial-val',
+    addedId: 'water-added',
+    totalId: 'water-total',
+    labelId: 'water-dynamic-label',
+    rate: 0.4
+  };
+
+  // Setup Stars
+  function populateStars(fieldId) {
+    const field = document.getElementById(fieldId);
+    field.innerHTML = '';
+    const starSymbols = ['✨', '⭐', '•'];
+    for (let i = 0; i < 6; i++) {
+      const star = document.createElement('span');
+      star.className = 'star';
+      star.innerText = starSymbols[Math.floor(Math.random() * starSymbols.length)];
+      star.style.left = Math.random() * 80 + 10 + '%';
+      star.style.top = Math.random() * 70 + 10 + '%';
+      star.style.animationDelay = (Math.random() * 1.5) + 's';
+      field.appendChild(star);
+    }
+  }
+
+  // Chart Setup
+  const ctx = document.getElementById('tempChart').getContext('2d');
+  const tempChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['Start (20°C)'],
+      datasets: [
+        {
+          label: 'Land (Soil) Temp (°C)',
+          data: [20.0],
+          borderColor: '#e67e22',
+          backgroundColor: '#e67e22',
+          borderWidth: 3,
+          tension: 0.2
+        },
+        {
+          label: 'Ocean (Water) Temp (°C)',
+          data: [20.0],
+          borderColor: '#3498db',
+          backgroundColor: '#3498db',
+          borderWidth: 3,
+          tension: 0.2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: 'Temperature Over Time (°C)',
+          font: { size: 16 }
+        }
+      },
+      scales: {
+        y: {
+          suggestedMin: 15,
+          suggestedMax: 45,
+          title: { display: true, text: 'Temperature (°C)' }
+        },
+        x: {
+          title: { display: true, text: 'Time Progression' }
+        }
+      }
+    }
+  });
+
+  function initBlocks() {
+    document.getElementById(soil.boxId).innerHTML = '';
+    document.getElementById(water.boxId).innerHTML = '';
+
+    for (let i = 0; i < soil.initial; i++) createBlock(soil.boxId);
+    for (let i = 0; i < water.initial; i++) createBlock(water.boxId);
+  }
+
+  function createBlock(boxId) {
+    const box = document.getElementById(boxId);
+    const block = document.createElement('div');
+    block.className = 'energy-block';
+    block.innerText = 'E';
+    
+    const x = Math.floor(Math.random() * 230);
+    const y = Math.floor(Math.random() * 65);
+    block.style.left = x + 'px';
+    block.style.top = y + 'px';
+
+    box.appendChild(block);
+  }
+
+  function triggerSunWave(cardId) {
+    const card = document.getElementById(cardId);
+    const wave = document.createElement('div');
+    wave.className = 'sun-wave';
+    card.appendChild(wave);
+    setTimeout(() => wave.remove(), 650);
+  }
+
+  function triggerNightWave(setupId) {
+    const setup = document.getElementById(setupId);
+    const wave = document.createElement('div');
+    wave.className = 'night-wave';
+    setup.appendChild(wave);
+    setTimeout(() => wave.remove(), 800);
+  }
+
+  function syncBlockCount(item) {
+    const box = document.getElementById(item.boxId);
+    const currentNetAdded = item.addedUnits - item.lostUnits;
+    const targetCount = Math.max(0, item.initial + Math.round(currentNetAdded));
+    
+    while (box.children.length < targetCount) {
+      createBlock(item.boxId);
+    }
+    while (box.children.length > targetCount && box.lastChild) {
+      box.removeChild(box.lastChild);
+    }
+  }
+
+  function addHeat(itemKey) {
+    if (isNight) return;
+
+    const item = itemKey === 'soil' ? soil : water;
+    item.addedUnits += 1.0;
+    item.temp += item.rate;
+
+    triggerSunWave(item.cardId);
+    syncBlockCount(item);
+    updateDisplay(item);
+    recordGraphStep();
+  }
+
+  function addHeatBoth() {
+    if (isNight) return;
+    addHeat('soil');
+    addHeat('water');
+  }
+
+  function updateDisplay(item) {
+    document.getElementById(item.tempId).innerText = item.temp.toFixed(1) + " °C";
+
+    if (!isNight) {
+      document.getElementById(item.initialValId).innerText = item.initial.toFixed(1);
+      document.getElementById(item.labelId).innerText = "Added Heat Units";
+      document.getElementById(item.addedId).innerText = item.addedUnits.toFixed(1);
+      const total = item.initial + item.addedUnits;
+      document.getElementById(item.totalId).innerText = total.toFixed(1);
+    } else {
+      document.getElementById(item.initialValId).innerText = item.sunsetHeat.toFixed(1);
+      document.getElementById(item.labelId).innerText = "Heat Units Lost";
+      document.getElementById(item.addedId).innerText = item.lostUnits.toFixed(1);
+      const total = item.sunsetHeat - item.lostUnits;
+      document.getElementById(item.totalId).innerText = Math.max(item.initial, total).toFixed(1);
+    }
+
+    let height = 20 + ((item.temp - 20) * 2.5);
+    document.getElementById(item.thermoId).style.height = Math.min(Math.max(height, 5), 98) + "%";
+  }
+
+  function recordGraphStep() {
+    timeStep++;
+    tempChart.data.labels.push(`Step ${timeStep}`);
+    tempChart.data.datasets[0].data.push(soil.temp.toFixed(1));
+    tempChart.data.datasets[1].data.push(water.temp.toFixed(1));
+    tempChart.update();
+  }
+
+  function toggleNight() {
+    isNight = !isNight;
+
+    if (isNight) {
+      document.body.classList.add('night');
+      document.getElementById('title').innerText = '🌙 Weather Dynamics: Nighttime Cooling';
+      document.getElementById('night-btn').innerText = '☀️ Switch to Day Mode';
+      document.getElementById('heat-both-btn').style.display = 'none';
+
+      // Update Sun buttons to Moon icons & update labels
+      document.getElementById('soil-sun').innerText = '🌙';
+      document.getElementById('soil-sun').style.cursor = 'default';
+      document.getElementById('water-sun').innerText = '🌙';
+      document.getElementById('water-sun').style.cursor = 'default';
+
+      document.getElementById('soil-sun-label').innerText = 'Nighttime Cooling';
+      document.getElementById('water-sun-label').innerText = 'Nighttime Cooling';
+
+      populateStars('soil-star-field');
+      populateStars('water-star-field');
+
+      soil.sunsetHeat = soil.initial + soil.addedUnits;
+      water.sunsetHeat = water.initial + water.addedUnits;
+
+      soil.peakTemp = soil.temp;
+      water.peakTemp = water.temp;
+
+      updateDisplay(soil);
+      updateDisplay(water);
+
+      coolingInterval = setInterval(() => {
+        let landCooled = false;
+        let waterCooled = false;
+
+        if (soil.temp > 20.0) {
+          soil.temp = Math.max(20.0, soil.temp - 1.05);
+          soil.lostUnits = (soil.peakTemp - soil.temp) / soil.rate;
+          triggerNightWave(soil.setupId);
+          syncBlockCount(soil);
+          updateDisplay(soil);
+          landCooled = true;
+        }
+
+        if (water.temp > 20.0) {
+          water.temp = Math.max(20.0, water.temp - 0.2);
+          water.lostUnits = (water.peakTemp - water.temp) / water.rate;
+          triggerNightWave(water.setupId);
+          syncBlockCount(water);
+          updateDisplay(water);
+          waterCooled = true;
+        }
+
+        if (landCooled || waterCooled) {
+          recordGraphStep();
+        } else {
+          clearInterval(coolingInterval);
+        }
+      }, 700);
+
+    } else {
+      clearInterval(coolingInterval);
+      document.body.classList.remove('night');
+      document.getElementById('title').innerText = '☀️ Weather Dynamics: Land vs. Ocean Heating';
+      document.getElementById('night-btn').innerText = '🌙 Switch to Night (Cooling)';
+      document.getElementById('heat-both-btn').style.display = 'inline-block';
+
+      // Restore Sun icons
+      document.getElementById('soil-sun').innerText = '☀️';
+      document.getElementById('soil-sun').style.cursor = 'pointer';
+      document.getElementById('water-sun').innerText = '☀️';
+      document.getElementById('water-sun').style.cursor = 'pointer';
+
+      document.getElementById('soil-sun-label').innerText = 'Click Sun to Heat Land';
+      document.getElementById('water-sun-label').innerText = 'Click Sun to Heat Ocean';
+
+      updateDisplay(soil);
+      updateDisplay(water);
+    }
+  }
+
+  function resetSim() {
+    clearInterval(coolingInterval);
+    isNight = false;
+    document.body.classList.remove('night');
+    document.getElementById('title').innerText = '☀️ Weather Dynamics: Land vs. Ocean Heating';
+    document.getElementById('night-btn').innerText = '🌙 Switch to Night (Cooling)';
+    document.getElementById('heat-both-btn').style.display = 'inline-block';
+
+    document.getElementById('soil-sun').innerText = '☀️';
+    document.getElementById('soil-sun').style.cursor = 'pointer';
+    document.getElementById('water-sun').innerText = '☀️';
+    document.getElementById('water-sun').style.cursor = 'pointer';
+
+    document.getElementById('soil-sun-label').innerText = 'Click Sun to Heat Land';
+    document.getElementById('water-sun-label').innerText = 'Click Sun to Heat Ocean';
+
+    soil.temp = 20.0; soil.peakTemp = 20.0; soil.addedUnits = 0.0; soil.lostUnits = 0.0; soil.sunsetHeat = 2.0;
+    water.temp = 20.0; water.peakTemp = 20.0; water.addedUnits = 0.0; water.lostUnits = 0.0; water.sunsetHeat = 10.0;
+
+    updateDisplay(soil);
+    updateDisplay(water);
+    initBlocks();
+
+    timeStep = 0;
+    tempChart.data.labels = ['Start (20°C)'];
+    tempChart.data.datasets[0].data = [20.0];
+    tempChart.data.datasets[1].data = [20.0];
+    tempChart.update();
+  }
+
+  initBlocks();
+</script>
+
+</body>
+</html>
