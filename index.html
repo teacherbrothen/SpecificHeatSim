@@ -28,10 +28,11 @@
   }
 
   .description {
-    max-width: 800px;
+    max-width: 820px;
     text-align: center;
     color: #555;
     margin-bottom: 20px;
+    line-height: 1.5;
   }
 
   body.night .description {
@@ -70,7 +71,7 @@
     margin-bottom: 10px;
   }
 
-  /* Celestial / Heat Source */
+  /* Celestial Container */
   .celestial-container {
     position: relative;
     width: 100px;
@@ -94,7 +95,7 @@
     transform: scale(1.2) rotate(15deg);
   }
 
-  /* Star Field Container for Night Mode */
+  /* Star Field for Night Mode */
   .star-field {
     position: absolute;
     top: 0;
@@ -126,6 +127,7 @@
     font-weight: bold;
     color: #d35400;
     margin-bottom: 10px;
+    min-height: 1.2em;
   }
 
   body.night .sun-label {
@@ -143,7 +145,7 @@
     justify-content: flex-start;
   }
 
-  /* Wide Container */
+  /* Tray Container */
   .container-box {
     width: 260px;
     height: 90px;
@@ -164,7 +166,7 @@
     opacity: 0.9;
   }
 
-  /* Precise Wave Animations */
+  /* Wave Animations */
   .sun-wave {
     position: absolute;
     width: 60px;
@@ -172,7 +174,7 @@
     border-radius: 50%;
     border: 3px solid #f1c40f;
     box-shadow: 0 0 10px #f39c12;
-    top: 68px; /* Starts directly at the Sun icon */
+    top: 68px;
     left: 50%;
     transform: translateX(-50%);
     opacity: 1;
@@ -193,8 +195,8 @@
     border-radius: 50%;
     border: 2.5px dashed #e74c3c;
     box-shadow: 0 0 8px #e74c3c;
-    top: 38px; /* Top-center surface of the tray */
-    left: 130px; /* Center of the tray */
+    top: 38px;
+    left: 130px;
     transform: translateX(-50%);
     opacity: 1;
     pointer-events: none;
@@ -283,6 +285,15 @@
     border-top-color: #4a6278;
   }
 
+  .emission-tag {
+    color: #e67e22;
+    font-weight: bold;
+  }
+
+  body.night .emission-tag {
+    color: #f39c12;
+  }
+
   .controls {
     display: flex;
     gap: 12px;
@@ -308,6 +319,9 @@
 
   .btn-sun { background-color: #e67e22; }
   .btn-sun:hover { background-color: #d35400; }
+
+  .btn-advance { background-color: #8e44ad; }
+  .btn-advance:hover { background-color: #7d3c98; }
 
   .btn-night { background-color: #34495e; }
   .btn-night:hover { background-color: #2c3e50; }
@@ -336,9 +350,9 @@
 <body>
 
 <h1 id="title">☀️ Weather Dynamics: Land vs. Ocean Heating</h1>
-<p class="description">
-  Click the <strong>Sun</strong> above either container to add heat units during the day. 
-  Observe how quickly land warms up compared to water, then switch to <strong>Night Mode</strong> to observe cooling!
+<p class="description" id="page-desc">
+  Add heat during the day to see land heat up faster than water as temperatures approach equilibrium. 
+  Switch to <strong>Night Mode</strong> and click <strong>Advance Time</strong> to observe how hotter substances emit more energy and cool smoothly!
 </p>
 
 <div class="sim-container">
@@ -348,7 +362,7 @@
     
     <div class="celestial-container">
       <div class="star-field" id="soil-star-field"></div>
-      <button class="sun-btn" id="soil-sun" onclick="addHeat('soil')" title="Click to add heat unit to land">☀️</button>
+      <button class="sun-btn" id="soil-celestial" onclick="handleCelestialClick('soil')" title="Click to heat land">☀️</button>
     </div>
     
     <div class="sun-label" id="soil-sun-label">Click Sun to Heat Land</div>
@@ -366,8 +380,9 @@
     <div class="temp-display" id="soil-temp">20.0 °C</div>
     <div class="stats">
       Mass: <strong>100 g</strong><br>
-      Initial Heat Units: <span id="soil-initial-val">2.0</span><br>
-      <span id="soil-dynamic-label">Added Heat Units</span>: <span id="soil-added">0.0</span><br>
+      <span id="soil-base-label">Baseline Heat Units</span>: <span id="soil-initial-val">2.0</span><br>
+      <span id="soil-dynamic-label">Net Added Heat Units</span>: <span id="soil-dynamic-val">0.0</span><br>
+      <div id="soil-emission-row" style="display: none;">Emission Rate: <span class="emission-tag" id="soil-emission-val">0.00</span> units/step</div>
       Total Heat Units: <span id="soil-total">2.0</span>
     </div>
   </div>
@@ -378,7 +393,7 @@
     
     <div class="celestial-container">
       <div class="star-field" id="water-star-field"></div>
-      <button class="sun-btn" id="water-sun" onclick="addHeat('water')" title="Click to add heat unit to water">☀️</button>
+      <button class="sun-btn" id="water-celestial" onclick="handleCelestialClick('water')" title="Click to heat water">☀️</button>
     </div>
     
     <div class="sun-label" id="water-sun-label">Click Sun to Heat Ocean</div>
@@ -396,15 +411,16 @@
     <div class="temp-display" id="water-temp">20.0 °C</div>
     <div class="stats">
       Mass: <strong>100 g</strong><br>
-      Initial Heat Units: <span id="water-initial-val">10.0</span><br>
-      <span id="water-dynamic-label">Added Heat Units</span>: <span id="water-added">0.0</span><br>
+      <span id="water-base-label">Baseline Heat Units</span>: <span id="water-initial-val">10.0</span><br>
+      <span id="water-dynamic-label">Net Added Heat Units</span>: <span id="water-dynamic-val">0.0</span><br>
+      <div id="water-emission-row" style="display: none;">Emission Rate: <span class="emission-tag" id="water-emission-val">0.00</span> units/step</div>
       Total Heat Units: <span id="water-total">10.0</span>
     </div>
   </div>
 </div>
 
 <div class="controls">
-  <button class="main-btn btn-sun" id="heat-both-btn" onclick="addHeatBoth()">☀️ Heat Both (+1 Unit)</button>
+  <button class="main-btn btn-sun" id="action-btn" onclick="handleActionClick()">☀️ Heat Both (+1 Unit)</button>
   <button class="main-btn btn-night" id="night-btn" onclick="toggleNight()">🌙 Switch to Night (Cooling)</button>
   <button class="main-btn btn-reset" onclick="resetSim()">🔄 Reset Experiment</button>
 </div>
@@ -416,45 +432,55 @@
 
 <script>
   let isNight = false;
-  let coolingInterval = null;
   let timeStep = 0;
+  const AMBIENT_TEMP = 20.0;
 
+  // Realistic thermal physics constants:
+  // heatCapacity: heat units required per 1 °C change
+  // dayLossRate: loss rate to ambient air under lamp (softens daytime heating curve)
+  // nightCoolRate: cooling coefficient per step (Newton's cooling law)
   let soil = {
     temp: 20.0,
-    peakTemp: 20.0,
-    initial: 2,
+    initial: 2.0,
     sunsetHeat: 2.0,
-    addedUnits: 0.0,
-    lostUnits: 0.0,
+    heatCapacity: 0.50, // lower heat capacity -> warms and cools quickly
+    dayLossRate: 0.036,  // equilibrium ceiling around ~48°C under lamp
+    nightCoolRate: 0.085,// gentle 8.5% decay per step (smooth curve)
+    lostUnitsTotal: 0.0,
     boxId: 'soil-box',
     cardId: 'soil-card',
     setupId: 'soil-setup',
     thermoId: 'soil-thermo',
     tempId: 'soil-temp',
+    baseLabelId: 'soil-base-label',
     initialValId: 'soil-initial-val',
-    addedId: 'soil-added',
-    totalId: 'soil-total',
-    labelId: 'soil-dynamic-label',
-    rate: 2.1
+    dynamicLabelId: 'soil-dynamic-label',
+    dynamicValId: 'soil-dynamic-val',
+    emissionRowId: 'soil-emission-row',
+    emissionValId: 'soil-emission-val',
+    totalId: 'soil-total'
   };
 
   let water = {
     temp: 20.0,
-    peakTemp: 20.0,
-    initial: 10,
+    initial: 10.0,
     sunsetHeat: 10.0,
-    addedUnits: 0.0,
-    lostUnits: 0.0,
+    heatCapacity: 2.20, // high heat capacity -> resists temperature changes
+    dayLossRate: 0.110,  // equilibrium ceiling around ~29°C (evaporation + convection)
+    nightCoolRate: 0.032,// slow 3.2% decay per step (retains heat)
+    lostUnitsTotal: 0.0,
     boxId: 'water-box',
     cardId: 'water-card',
     setupId: 'water-setup',
     thermoId: 'water-thermo',
     tempId: 'water-temp',
+    baseLabelId: 'water-base-label',
     initialValId: 'water-initial-val',
-    addedId: 'water-added',
-    totalId: 'water-total',
-    labelId: 'water-dynamic-label',
-    rate: 0.4
+    dynamicLabelId: 'water-dynamic-label',
+    dynamicValId: 'water-dynamic-val',
+    emissionRowId: 'water-emission-row',
+    emissionValId: 'water-emission-val',
+    totalId: 'water-total'
   };
 
   // Setup Stars
@@ -473,7 +499,7 @@
     }
   }
 
-  // Chart Setup
+  // Chart Setup with soft tension
   const ctx = document.getElementById('tempChart').getContext('2d');
   const tempChart = new Chart(ctx, {
     type: 'line',
@@ -486,7 +512,8 @@
           borderColor: '#e67e22',
           backgroundColor: '#e67e22',
           borderWidth: 3,
-          tension: 0.2
+          pointRadius: 3,
+          tension: 0.35 // smooth organic curves
         },
         {
           label: 'Ocean (Water) Temp (°C)',
@@ -494,7 +521,8 @@
           borderColor: '#3498db',
           backgroundColor: '#3498db',
           borderWidth: 3,
-          tension: 0.2
+          pointRadius: 3,
+          tension: 0.35 // smooth organic curves
         }
       ]
     },
@@ -510,7 +538,7 @@
       scales: {
         y: {
           suggestedMin: 15,
-          suggestedMax: 45,
+          suggestedMax: 52,
           title: { display: true, text: 'Temperature (°C)' }
         },
         x: {
@@ -558,10 +586,11 @@
     setTimeout(() => wave.remove(), 800);
   }
 
+  // Sync block count with current stored energy above ambient
   function syncBlockCount(item) {
     const box = document.getElementById(item.boxId);
-    const currentNetAdded = item.addedUnits - item.lostUnits;
-    const targetCount = Math.max(0, item.initial + Math.round(currentNetAdded));
+    const storedThermalUnits = (item.temp - AMBIENT_TEMP) * item.heatCapacity;
+    const targetCount = Math.max(0, Math.round(item.initial + storedThermalUnits));
     
     while (box.children.length < targetCount) {
       createBlock(item.boxId);
@@ -571,44 +600,110 @@
     }
   }
 
-  function addHeat(itemKey) {
-    if (isNight) return;
+  // Rate of heat emitted at night: dQ/dt = h * (T - 20)
+  function getEmissionRate(item) {
+    const deltaT = Math.max(0, item.temp - AMBIENT_TEMP);
+    return deltaT * item.nightCoolRate * item.heatCapacity;
+  }
 
+  // Soft Daytime Heating (Radiative Equilibrium)
+  function addHeat(itemKey, record = true) {
+    if (isNight) return;
     const item = itemKey === 'soil' ? soil : water;
-    item.addedUnits += 1.0;
-    item.temp += item.rate;
+
+    // 1 unit of radiant energy enters; heat loss to room increases with temperature
+    const deltaT = Math.max(0, item.temp - AMBIENT_TEMP);
+    const heatLostToRoom = deltaT * item.dayLossRate;
+    const netHeatGain = Math.max(0.04, 1.0 - heatLostToRoom);
+
+    item.temp += (netHeatGain / item.heatCapacity);
 
     triggerSunWave(item.cardId);
     syncBlockCount(item);
     updateDisplay(item);
-    recordGraphStep();
+    if (record) recordGraphStep();
   }
 
-  function addHeatBoth() {
-    if (isNight) return;
-    addHeat('soil');
-    addHeat('water');
+  // Soft Nighttime Cooling (Newton's Law of Cooling)
+  function advanceNightStep() {
+    if (!isNight) return;
+    let anyChange = false;
+
+    [soil, water].forEach(item => {
+      const deltaT = item.temp - AMBIENT_TEMP;
+      if (deltaT > 0.02) {
+        // Hotter material emits more heat units per time step
+        const heatEmitted = getEmissionRate(item);
+        item.lostUnitsTotal += heatEmitted;
+
+        // Temperature decay: dT = dQ / HeatCapacity
+        const tempDrop = heatEmitted / item.heatCapacity;
+        item.temp = Math.max(AMBIENT_TEMP, item.temp - tempDrop);
+
+        triggerNightWave(item.setupId);
+        syncBlockCount(item);
+        updateDisplay(item);
+        anyChange = true;
+      }
+    });
+
+    if (anyChange) {
+      recordGraphStep();
+    }
+  }
+
+  function handleCelestialClick(itemKey) {
+    if (!isNight) {
+      addHeat(itemKey);
+    } else {
+      advanceNightStep();
+    }
+  }
+
+  function handleActionClick() {
+    if (!isNight) {
+      addHeat('soil', false);
+      addHeat('water', false);
+      recordGraphStep();
+    } else {
+      advanceNightStep();
+    }
   }
 
   function updateDisplay(item) {
     document.getElementById(item.tempId).innerText = item.temp.toFixed(1) + " °C";
 
+    const netThermalUnits = (item.temp - AMBIENT_TEMP) * item.heatCapacity;
+
     if (!isNight) {
+      document.getElementById(item.baseLabelId).innerText = "Baseline Heat Units";
       document.getElementById(item.initialValId).innerText = item.initial.toFixed(1);
-      document.getElementById(item.labelId).innerText = "Added Heat Units";
-      document.getElementById(item.addedId).innerText = item.addedUnits.toFixed(1);
-      const total = item.initial + item.addedUnits;
+      document.getElementById(item.dynamicLabelId).innerText = "Net Added Heat Units";
+      document.getElementById(item.dynamicValId).innerText = netThermalUnits.toFixed(1);
+      document.getElementById(item.emissionRowId).style.display = 'none';
+
+      const total = item.initial + netThermalUnits;
       document.getElementById(item.totalId).innerText = total.toFixed(1);
     } else {
+      document.getElementById(item.baseLabelId).innerText = "Heat at Sunset";
       document.getElementById(item.initialValId).innerText = item.sunsetHeat.toFixed(1);
-      document.getElementById(item.labelId).innerText = "Heat Units Lost";
-      document.getElementById(item.addedId).innerText = item.lostUnits.toFixed(1);
-      const total = item.sunsetHeat - item.lostUnits;
-      document.getElementById(item.totalId).innerText = Math.max(item.initial, total).toFixed(1);
+      document.getElementById(item.dynamicLabelId).innerText = "Total Heat Emitted";
+      document.getElementById(item.dynamicValId).innerText = item.lostUnitsTotal.toFixed(1);
+
+      // Display current live emission rate
+      const emissionRow = document.getElementById(item.emissionRowId);
+      const emissionVal = document.getElementById(item.emissionValId);
+      emissionRow.style.display = 'block';
+      const rate = getEmissionRate(item);
+      emissionVal.innerText = rate > 0.01 ? rate.toFixed(2) : "0.00 (Equilibrium)";
+
+      const total = item.initial + netThermalUnits;
+      document.getElementById(item.totalId).innerText = total.toFixed(1);
     }
 
-    let height = 20 + ((item.temp - 20) * 2.5);
-    document.getElementById(item.thermoId).style.height = Math.min(Math.max(height, 5), 98) + "%";
+    // Thermometer fill scaled realistically from 20°C to 55°C
+    let height = 20 + ((item.temp - AMBIENT_TEMP) * 2.3);
+    document.getElementById(item.thermoId).style.height = Math.min(Math.max(height, 8), 96) + "%";
   }
 
   function recordGraphStep() {
@@ -621,75 +716,51 @@
 
   function toggleNight() {
     isNight = !isNight;
+    const actionBtn = document.getElementById('action-btn');
 
     if (isNight) {
       document.body.classList.add('night');
       document.getElementById('title').innerText = '🌙 Weather Dynamics: Nighttime Cooling';
+      document.getElementById('page-desc').innerHTML = 
+        'Click <strong>Advance Time (Emit Heat)</strong> to step through the night. Notice how the hotter substance emits more heat and how the temperatures smoothly cross over!';
       document.getElementById('night-btn').innerText = '☀️ Switch to Day Mode';
-      document.getElementById('heat-both-btn').style.display = 'none';
+      
+      actionBtn.innerText = '⏱️ Advance Time (Emit Heat)';
+      actionBtn.className = 'main-btn btn-advance';
 
-      // Update Sun buttons to Moon icons & update labels
-      document.getElementById('soil-sun').innerText = '🌙';
-      document.getElementById('soil-sun').style.cursor = 'default';
-      document.getElementById('water-sun').innerText = '🌙';
-      document.getElementById('water-sun').style.cursor = 'default';
+      document.getElementById('soil-celestial').innerText = '🌙';
+      document.getElementById('soil-celestial').title = 'Click to advance night time step';
+      document.getElementById('water-celestial').innerText = '🌙';
+      document.getElementById('water-celestial').title = 'Click to advance night time step';
 
-      document.getElementById('soil-sun-label').innerText = 'Nighttime Cooling';
-      document.getElementById('water-sun-label').innerText = 'Nighttime Cooling';
+      document.getElementById('soil-sun-label').innerText = 'Cooling at Night';
+      document.getElementById('water-sun-label').innerText = 'Cooling at Night';
 
       populateStars('soil-star-field');
       populateStars('water-star-field');
 
-      soil.sunsetHeat = soil.initial + soil.addedUnits;
-      water.sunsetHeat = water.initial + water.addedUnits;
-
-      soil.peakTemp = soil.temp;
-      water.peakTemp = water.temp;
+      soil.sunsetHeat = soil.initial + ((soil.temp - AMBIENT_TEMP) * soil.heatCapacity);
+      water.sunsetHeat = water.initial + ((water.temp - AMBIENT_TEMP) * water.heatCapacity);
+      soil.lostUnitsTotal = 0.0;
+      water.lostUnitsTotal = 0.0;
 
       updateDisplay(soil);
       updateDisplay(water);
 
-      coolingInterval = setInterval(() => {
-        let landCooled = false;
-        let waterCooled = false;
-
-        if (soil.temp > 20.0) {
-          soil.temp = Math.max(20.0, soil.temp - 1.05);
-          soil.lostUnits = (soil.peakTemp - soil.temp) / soil.rate;
-          triggerNightWave(soil.setupId);
-          syncBlockCount(soil);
-          updateDisplay(soil);
-          landCooled = true;
-        }
-
-        if (water.temp > 20.0) {
-          water.temp = Math.max(20.0, water.temp - 0.2);
-          water.lostUnits = (water.peakTemp - water.temp) / water.rate;
-          triggerNightWave(water.setupId);
-          syncBlockCount(water);
-          updateDisplay(water);
-          waterCooled = true;
-        }
-
-        if (landCooled || waterCooled) {
-          recordGraphStep();
-        } else {
-          clearInterval(coolingInterval);
-        }
-      }, 700);
-
     } else {
-      clearInterval(coolingInterval);
       document.body.classList.remove('night');
       document.getElementById('title').innerText = '☀️ Weather Dynamics: Land vs. Ocean Heating';
+      document.getElementById('page-desc').innerHTML = 
+        'Add heat during the day to see land heat up faster than water as temperatures approach equilibrium. Switch to <strong>Night Mode</strong> and click <strong>Advance Time</strong> to observe smooth cooling!';
       document.getElementById('night-btn').innerText = '🌙 Switch to Night (Cooling)';
-      document.getElementById('heat-both-btn').style.display = 'inline-block';
+      
+      actionBtn.innerText = '☀️ Heat Both (+1 Unit)';
+      actionBtn.className = 'main-btn btn-sun';
 
-      // Restore Sun icons
-      document.getElementById('soil-sun').innerText = '☀️';
-      document.getElementById('soil-sun').style.cursor = 'pointer';
-      document.getElementById('water-sun').innerText = '☀️';
-      document.getElementById('water-sun').style.cursor = 'pointer';
+      document.getElementById('soil-celestial').innerText = '☀️';
+      document.getElementById('soil-celestial').title = 'Click to heat land';
+      document.getElementById('water-celestial').innerText = '☀️';
+      document.getElementById('water-celestial').title = 'Click to heat water';
 
       document.getElementById('soil-sun-label').innerText = 'Click Sun to Heat Land';
       document.getElementById('water-sun-label').innerText = 'Click Sun to Heat Ocean';
@@ -700,23 +771,27 @@
   }
 
   function resetSim() {
-    clearInterval(coolingInterval);
     isNight = false;
     document.body.classList.remove('night');
     document.getElementById('title').innerText = '☀️ Weather Dynamics: Land vs. Ocean Heating';
+    document.getElementById('page-desc').innerHTML = 
+      'Add heat during the day to see land heat up faster than water as temperatures approach equilibrium. Switch to <strong>Night Mode</strong> and click <strong>Advance Time</strong> to observe smooth cooling!';
     document.getElementById('night-btn').innerText = '🌙 Switch to Night (Cooling)';
-    document.getElementById('heat-both-btn').style.display = 'inline-block';
+    
+    const actionBtn = document.getElementById('action-btn');
+    actionBtn.innerText = '☀️ Heat Both (+1 Unit)';
+    actionBtn.className = 'main-btn btn-sun';
 
-    document.getElementById('soil-sun').innerText = '☀️';
-    document.getElementById('soil-sun').style.cursor = 'pointer';
-    document.getElementById('water-sun').innerText = '☀️';
-    document.getElementById('water-sun').style.cursor = 'pointer';
+    document.getElementById('soil-celestial').innerText = '☀️';
+    document.getElementById('soil-celestial').title = 'Click to heat land';
+    document.getElementById('water-celestial').innerText = '☀️';
+    document.getElementById('water-celestial').title = 'Click to heat water';
 
     document.getElementById('soil-sun-label').innerText = 'Click Sun to Heat Land';
     document.getElementById('water-sun-label').innerText = 'Click Sun to Heat Ocean';
 
-    soil.temp = 20.0; soil.peakTemp = 20.0; soil.addedUnits = 0.0; soil.lostUnits = 0.0; soil.sunsetHeat = 2.0;
-    water.temp = 20.0; water.peakTemp = 20.0; water.addedUnits = 0.0; water.lostUnits = 0.0; water.sunsetHeat = 10.0;
+    soil.temp = 20.0; soil.lostUnitsTotal = 0.0; soil.sunsetHeat = 2.0;
+    water.temp = 20.0; water.lostUnitsTotal = 0.0; water.sunsetHeat = 10.0;
 
     updateDisplay(soil);
     updateDisplay(water);
